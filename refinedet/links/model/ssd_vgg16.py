@@ -460,15 +460,15 @@ class RefineDet320(RefineDetSSD):
     """
 
     _models = {
-        'voc0712': {
-            'n_fg_class': 20,
-            'url': 'https://github.com/yuyu2172/share-weights/releases/'
-            'download/0.0.3/ssd300_voc0712_2017_06_06.npz'
-        },
+        # 'voc0712': {
+        #     'n_fg_class': 20,
+        #     'url': 'https://github.com/yuyu2172/share-weights/releases/'
+        #     'download/0.0.3/ssd300_voc0712_2017_06_06.npz'
+        # },
         'imagenet': {
             'n_fg_class': None,
-            'url': 'https://github.com/yuyu2172/share-weights/releases/'
-            'download/0.0.3/VGG_ILSVRC_16_layers_fc_reduced.npz'
+            'url': 'https://github.com/fukatani/RefineDet_chainer/releases/'
+                   'download/0.0.0/VGG_ILSVRC_16_layers_fc_reduced.npz'
         },
     }
 
