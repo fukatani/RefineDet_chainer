@@ -11,6 +11,20 @@ Including
 Original DSSD is based on ResNet 101.
 Since memory limitation, only tried on VGG.
 
+# Benchmark result
+
+|Model name |Base model |Input image size |mAP |mAP(paper)|
+|-----------|-----------|-----------------|----|----------|
+|SSD |VGG16 |300x300 |77.5|77.5|
+|SSD Plus(Use Residual Prediction module) |VGG16 |300x300 |78.0 |NA|
+|ESSD |VGG16 |300x300 |78.8 |79.4|
+|RefineDet |VGG16 |320x320 |Now evaluating |80.0|
+
+*: I set batchsize to 22 because of memory limitation. The original paper used 32.
+Some training condition is different from paper.
+ex. ESSD original paper did 3 stages training (Only SSD, Only extensional module and whole network), but I did whole training only.
+Or I may mistook unintensionally.
+
 # Requirement
 
 + [Chainercv](https://github.com/chainer/chainercv) and its dependencies
