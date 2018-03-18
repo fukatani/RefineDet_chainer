@@ -36,6 +36,9 @@ def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
                   binarize=False, arm_confs=None, arm_locs=None):
     """Computes multibox losses.
 
+    Different from :obj:`chainercv.MultiboxCoder`, Cascared offset regression
+    and negative anchor filtering and arm binarization loss is supported.
+
     This is a loss function used in [#]_.
     This function returns :obj:`loc_loss` and :obj:`conf_loss`.
     :obj:`loc_loss` is a loss for localization and
@@ -43,9 +46,8 @@ def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
     The formulas of these losses can be found in
     the equation (2) and (3) in the original paper.
 
-    .. [#] Wei Liu, Dragomir Anguelov, Dumitru Erhan,
-       Christian Szegedy, Scott Reed, Cheng-Yang Fu, Alexander C. Berg.
-       SSD: Single Shot MultiBox Detector. ECCV 2016.
+    .. [#] Shifeng Zhang, Longyin Wen, Xiao Bian, Zhen Lei, Stan Z. Li.
+       Single-Shot Refinement Neural Network for Object Detection.
 
     Args:
         mb_locs (chainer.Variable or array): The offsets and scales
@@ -67,6 +69,13 @@ def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
             This value determines the ratio between the number of positives
             and that of mined negatives. The value used in the original paper
             is :obj:`3`.
+        binarize(bool): If True, conf loss objective is binarized (Any class or
+            background).
+        arm_confs(chainer.Variable or None): If not `None`, negative anchor
+            filtering is enabled. Indexes where :obj:`arm_confs` <= 0.01,
+            will not be used to training.
+        arm_locs(chainer.Variable or None): If not `None`, cascaded offset
+            regression is enabled.
 
     Returns:
         tuple of chainer.Variable:

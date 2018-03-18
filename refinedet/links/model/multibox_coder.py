@@ -9,9 +9,9 @@ import numpy as np
 class MultiboxCoder(object):
     """A helper class to encode/decode bounding boxes.
 
-    This class encodes :obj:`(bbox, label)` to :obj:`(mb_loc, mb_label)`
-    and decodes :obj:`(mb_loc, mb_conf)` to :obj:`(bbox, label, score)`.
-    These encoding/decoding are used in Single Shot Multibox Detector [#]_.
+    Different from :obj:`chainercv.MultiboxCoder`, length of :obj:`sizes` can
+    be equals to length of :obj:`grids`.
+    If so, some anchor box will not be used.
 
     * :obj:`mb_loc`: An array representing offsets and scales \
          from the default bounding boxes. \
@@ -38,10 +38,6 @@ class MultiboxCoder(object):
     * :obj:`mb_conf`: An array representing classes of \
          predicted bounding boxes. Its shape is :math:`(K, n\_fg\_class + 1)`.
 
-    .. [#] Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy,
-       Scott Reed, Cheng-Yang Fu, Alexander C. Berg.
-       SSD: Single Shot MultiBox Detector. ECCV 2016.
-
     Args:
         grids (iterable of ints): An iterable of integers.
             Each integer indicates the size of a feature map.
@@ -55,7 +51,8 @@ class MultiboxCoder(object):
             The length of this iterable should be :obj:`len(grids)`.
         sizes (iterable of floats): The base size of default bounding boxes
             for each feature map.
-            The length of this iterable should be :obj:`len(grids) + 1`.
+            The length of this iterable should be :obj:`len(grids) + 1` or
+            :obj:`len(grids)`.
         variance (tuple of floats): Two coefficients for encoding/decoding
             the locations of bounding boxes. The first value is used to
             encode/decode coordinates of the centers.

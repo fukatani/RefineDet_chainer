@@ -67,7 +67,12 @@ def _check_pretrained_model(n_fg_class, pretrained_model, models):
 
 
 class SSD300Plus(SSD):
-    """Single Shot Multibox Detector with 300x300 inputs.
+    """Single Shot Multibox Detector with 300x300 inputs with residual
+    prediction module [#].
+
+    .. [#] Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy,
+       Scott Reed, Cheng-Yang Fu, Alexander C. Berg.
+       SSD: Single Shot MultiBox Detector. ECCV 2016.
 
     """
 
@@ -204,11 +209,11 @@ class ESSD300Plus(SSD):
     """
 
     _models = {
-        'voc0712': {
-            'n_fg_class': 20,
-            'url': 'https://github.com/yuyu2172/share-weights/releases/'
-            'download/0.0.3/ssd300_voc0712_2017_06_06.npz'
-        },
+        # 'voc0712': {
+        #     'n_fg_class': 20,
+        #     'url': 'https://github.com/yuyu2172/share-weights/releases/'
+        #     'download/0.0.3/ssd300_voc0712_2017_06_06.npz'
+        # },
         'imagenet': {
             'n_fg_class': None,
             'url': 'https://github.com/yuyu2172/share-weights/releases/'
@@ -234,15 +239,15 @@ class ESSD300Plus(SSD):
 
 
 class ESSD300(SSD):
-    """Deconvolutional Single Shot Multibox Detector with 300x300 inputs.
+    """Extended Single Shot Multibox Detector with 300x300 inputs.
 
-    This is a model of Single Shot Multibox Detector [#]_.
+    This is a model of Extended Single Shot Multibox Detector [#]_.
     This model uses :class:`~chainercv.links.model.ssd.VGG16Extractor300` as
     its feature extractor.
 
-    .. [#] Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy,
-       Scott Reed, Cheng-Yang Fu, Alexander C. Berg.
-       SSD: Single Shot MultiBox Detector. ECCV 2016.
+    .. [#] Liwen Zheng, Canmiao Fu, Yong Zhao.
+       Extend the shallow part of Single Shot MultiBox Detector via
+       Convolutional Neural Network.
 
     Args:
        n_fg_class (int): The number of classes excluding the background.
@@ -270,11 +275,11 @@ class ESSD300(SSD):
     """
 
     _models = {
-        'voc0712': {
-            'n_fg_class': 20,
-            'url': 'https://github.com/yuyu2172/share-weights/releases/'
-            'download/0.0.3/ssd300_voc0712_2017_06_06.npz'
-        },
+        # 'voc0712': {
+        #     'n_fg_class': 20,
+        #     'url': 'https://github.com/yuyu2172/share-weights/releases/'
+        #     'download/0.0.3/ssd300_voc0712_2017_06_06.npz'
+        # },
         'imagenet': {
             'n_fg_class': None,
             'url': 'https://github.com/yuyu2172/share-weights/releases/'
@@ -300,7 +305,7 @@ class ESSD300(SSD):
 
 
 class VGG16RefineDet(chainer.Chain):
-    """An extended VGG-16 model for SSD300 and SSD512.
+    """An extended VGG-16 model for SSD320.
 
     This is an extended VGG-16 model proposed in [#]_.
     The differences from original VGG-16 [#]_ are shown below.
@@ -424,15 +429,14 @@ class VGG16Extractor320(VGG16RefineDet):
 
 
 class RefineDet320(RefineDetSSD):
-    """Deconvolutional Single Shot Multibox Detector with 300x300 inputs.
+    """RefineDet with 320x320 inputs.
 
-    This is a model of Single Shot Multibox Detector [#]_.
-    This model uses :class:`~chainercv.links.model.ssd.VGG16Extractor300` as
+    This is a model of RefineDet [#]_.
+    This model uses :class:`~chainercv.links.model.ssd.VGG16Extractor320` as
     its feature extractor.
 
-    .. [#] Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy,
-       Scott Reed, Cheng-Yang Fu, Alexander C. Berg.
-       SSD: Single Shot MultiBox Detector. ECCV 2016.
+    .. [#] Shifeng Zhang, Longyin Wen, Xiao Bian, Zhen Lei, Stan Z. Li.
+       Single-Shot Refinement Neural Network for Object Detection.
 
     Args:
        n_fg_class (int): The number of classes excluding the background.
