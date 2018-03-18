@@ -22,11 +22,11 @@ Since memory limitation, only tried on VGG.
 
 *: I set batchsize to 22 because of memory limitation. The original paper used 32.
 
-Some training condition is different from paper.
+*:Some training condition is different from paper.
 
-ex. ESSD original paper did 3 stages training (Only SSD, Only extensional module and whole network), but I did whole training only.
+*: ESSD original paper did 3 stages training (Only SSD, Only extensional module and whole network), but I did whole training only.
 
-Or I may mistook unintensionally.
+*: I may mistook unintensionally.
 
 # Requirement
 
