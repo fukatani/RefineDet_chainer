@@ -107,6 +107,7 @@ def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
         objectness[objectness > 0.01] = 1
         objectness = objectness.reshape(objectness.shape[0],
                                         objectness.shape[1])
+        n_positive = (positive * objectness).sum()
     else:
         objectness = None
 
