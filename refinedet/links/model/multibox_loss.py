@@ -98,7 +98,7 @@ def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
             arm_locs = arm_locs.copy()
 
         w_offset = arm_locs[:, :, 2:] + mb_locs[:, :, 2:]
-        x_offset = xp.exp(arm_locs[:, :, 2:] * variance[1]) + mb_locs[:, :, 2:]
+        x_offset = xp.exp(arm_locs[:, :, 2:] * variance[1]) * mb_locs[:, :, :2]
         x_offset += arm_locs[:, :, :2]
         mb_locs = F.dstack((x_offset, w_offset))
 
