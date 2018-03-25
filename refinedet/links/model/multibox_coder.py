@@ -292,7 +292,7 @@ class RefineDetMultiboxCoder(MultiboxCoder):
 
         # Anchor refinement
         mb_bbox[:, :2] += odm_loc[:, :2] * self._variance[0] \
-                          * mb_bbox[:, :2]
+                          * mb_bbox[:, 2:]
         mb_bbox[:, 2:] *= xp.exp(odm_loc[:, 2:] * self._variance[1])
 
         # (center_y, center_x, height, width) -> (y_min, x_min, height, width)
