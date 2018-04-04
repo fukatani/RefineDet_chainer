@@ -33,7 +33,7 @@ def _hard_negative(x, positive, k, arm_objectness=None):
 
 
 def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
-                  binarize=False, arm_confs=None, arm_locs=None):
+                  binarize=False, arm_confs=None):
     """Computes multibox losses.
 
     Different from :obj:`chainercv.MultiboxCoder`, Cascared offset regression
@@ -91,17 +91,6 @@ def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
 
     xp = chainer.cuda.get_array_module(gt_mb_labels.array)
 
-    if arm_locs is not None:
-        if isinstance(arm_locs, chainer.Variable):
-            arm_locs = arm_locs.array.copy()
-        else:
-            arm_locs = arm_locs.copy()
-
-        w_offset = arm_locs[:, :, 2:] + mb_locs[:, :, 2:]
-        x_offset = xp.exp(arm_locs[:, :, 2:] * variance[1]) * mb_locs[:, :, :2]
-        x_offset += arm_locs[:, :, :2]
-        mb_locs = F.dstack((x_offset, w_offset))
-
     positive = gt_mb_labels.array > 0
     n_positive = positive.sum()
     if n_positive == 0:
@@ -110,7 +99,7 @@ def multibox_loss(mb_locs, mb_confs, gt_mb_locs, gt_mb_labels, k,
 
     loc_loss = F.huber_loss(mb_locs, gt_mb_locs, 1, reduce='no')
     if arm_confs is not None:
-        if isinstance(arm_locs, chainer.Variable):
+        if isinstance(arm_confs, chainer.Variable):
             arm_confs = arm_confs.array.copy()
         else:
             arm_confs = arm_confs.copy()

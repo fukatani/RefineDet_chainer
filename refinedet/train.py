@@ -30,6 +30,7 @@ from refinedet.links.model.ssd_vgg16 import DSSD300
 from refinedet.links.model.ssd_vgg16 import ESSD300
 from refinedet.links.model.ssd_vgg16 import ESSD300Plus
 from refinedet.links.model.ssd_vgg16 import RefineDet320
+from refinedet.extension import refinedet_updater
 
 
 class MultiboxTrainChain(chainer.Chain):
@@ -62,7 +63,11 @@ class RefineDetTrainChain(chainer.Chain):
             self.model = model
         self.k = k
 
-    def __call__(self, imgs, gt_mb_locs, gt_mb_labels):
+    def arm_locs(self, imgs, gt_mb_locs, gt_mb_labels):
+        arm_locs, _, _, _ = self.model(imgs)
+        return arm_locs
+
+    def __call__(self, imgs, gt_mb_locs, gt_mb_labels, refined_locs):
         arm_locs, arm_confs, odm_locs, odm_confs = self.model(imgs)
 
         gt_objectness_label = gt_mb_labels.copy()
@@ -76,8 +81,8 @@ class RefineDetTrainChain(chainer.Chain):
         objectness = xp.zeros_like(arm_confs.array)
         objectness[arm_confs.array >= 0.01] = 1
         odm_loc_loss, odm_conf_loss = multibox_loss(
-            odm_locs, odm_confs, gt_mb_locs, gt_mb_labels, self.k,
-            arm_confs=objectness, arm_locs=arm_locs)
+            odm_locs, odm_confs, refined_locs, gt_mb_labels, self.k,
+            arm_confs=objectness)
         loss = arm_loc_loss + arm_conf_loss + odm_loc_loss + odm_conf_loss
 
         chainer.reporter.report(
@@ -141,9 +146,9 @@ class Transform(object):
 
         # Preparation for SSD network
         img -= self.mean
-        mb_loc, mb_label = self.coder.encode(bbox, label)
+        # mb_loc, mb_label = self.coder.encode(bbox, label)
 
-        return img, mb_loc, mb_label
+        return img, bbox, label
 
 
 def main():
@@ -220,7 +225,10 @@ def main():
         else:
             param.update_rule.add_hook(WeightDecay(0.0005))
 
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = refinedet_updater.RefineDetUpdater(train_iter, optimizer,
+                                                 model.coder,
+                                                 arm_locs_func=train_chain.arm_locs,
+                                                 device=args.gpu)
     if isinstance(model, RefineDet320):
         trainer = training.Trainer(updater, (240000, 'iteration'), args.out)
         trainer.extend(

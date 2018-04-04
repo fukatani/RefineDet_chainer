@@ -261,6 +261,21 @@ class MultiboxCoder(object):
 
         return bbox, label, score
 
+    def decode_simple(self, mb_loc, mb_conf):
+        xp = self.xp
+
+        # (center_y, center_x, height, width)
+        mb_bbox = self._default_bbox.copy()
+        mb_bbox[:, :2] += mb_loc[:, :2] * self._variance[0] \
+            * self._default_bbox[:, 2:]
+        mb_bbox[:, 2:] *= xp.exp(mb_loc[:, 2:] * self._variance[1])
+
+        # (center_y, center_x, height, width) -> (y_min, x_min, height, width)
+        mb_bbox[:, :2] -= mb_bbox[:, 2:] / 2
+        # (center_y, center_x, height, width) -> (y_min, x_min, y_max, x_max)
+        mb_bbox[:, 2:] += mb_bbox[:, :2]
+        return mb_bbox
+
 
 def _unravel_index(index, shape):
     if isinstance(index, np.int64):
@@ -279,8 +294,11 @@ class RefineDetMultiboxCoder(MultiboxCoder):
 
     Supports Anchor refinement and negative anchor filtering.
     """
-    def decode(self, arm_loc, arm_conf, odm_loc, odm_conf, nms_thresh=0.45,
-               score_thresh=0.6):
+    def decode(self, arm_loc, arm_conf, odm_loc=None, odm_conf=None,
+               nms_thresh=0.45, score_thresh=0.6):
+        if odm_loc is None:
+            return super().decode(arm_loc, arm_conf, nms_thresh, score_thresh)
+
         xp = self.xp
 
         # (center_y, center_x, height, width)
@@ -338,3 +356,12 @@ class RefineDetMultiboxCoder(MultiboxCoder):
         score = xp.hstack(score).astype(np.float32)
 
         return bbox, label, score
+
+    def encode(self, bbox, label, iou_thresh=0.5, decode_arm=None):
+        if decode_arm is None:
+            return super().encode(bbox, label, iou_thresh)
+        default_box = self._default_bbox.copy()
+        self._default_bbox = decode_arm
+        mb_loc, mb_label = super().encode(bbox, label, iou_thresh)
+        self._default_bbox = default_box
+        return mb_loc, mb_label
