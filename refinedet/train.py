@@ -63,9 +63,9 @@ class RefineDetTrainChain(chainer.Chain):
             self.model = model
         self.k = k
 
-    def arm_locs(self, imgs, gt_mb_locs, gt_mb_labels):
+    def arm_locs(self, imgs):
         arm_locs, _, _, _ = self.model(imgs)
-        return arm_locs
+        return arm_locs.array
 
     def __call__(self, imgs, gt_mb_locs, gt_mb_labels, refined_locs):
         arm_locs, arm_confs, odm_locs, odm_confs = self.model(imgs)

@@ -34,25 +34,21 @@ class RefineDetUpdater(training.StandardUpdater):
     def update_core(self):
         batch = self._iterators['main'].next()
 
-        for i, (_, bbox, label) in enumerate(batch):
+        img_batch = list([img for img, bbox, label in batch])
+        in_arrays = self.converter(img_batch, self.device)
+        arm_locs = self.arm_locs_func(in_arrays)
+
+        for i, arm_loc in enumerate(arm_locs):
+            _, bbox, label = batch[i]
             bbox = cupy.asarray(bbox)
             label = cupy.asarray(label)
-
             mb_loc, mb_label = self.coder.encode(bbox, label)
+            decode_arm = self.coder.decode_simple(mb_loc)
+            refined_loc, _ = self.coder.encode(bbox, label, decode_arm=decode_arm)
+            # refined_loc, _ = self.coder.encode(bbox, label, decode_arm=self.coder._default_bbox)
             batch[i] = list(batch[i])
             batch[i][1] = mb_loc
             batch[i][2] = mb_label
-            batch[i] = tuple(batch[i])
-
-        in_arrays = self.converter(batch, self.device)
-        arm_locs = self.arm_locs_func(*in_arrays)
-
-        for i, arm_loc in enumerate(arm_locs):
-            _, mb_loc, mb_label = batch[i]
-            soft_label = cupy.eye(21)[mb_label]
-            decode_arm = self.coder.decode_simple(mb_loc, soft_label)
-            refined_loc, _ = self.coder.encode(bbox, label, decode_arm=decode_arm)
-            batch[i] = list(batch[i])
             batch[i].append(refined_loc)
             batch[i] = tuple(batch[i])
 

@@ -261,7 +261,7 @@ class MultiboxCoder(object):
 
         return bbox, label, score
 
-    def decode_simple(self, mb_loc, mb_conf):
+    def decode_simple(self, mb_loc):
         xp = self.xp
 
         # (center_y, center_x, height, width)
