@@ -271,9 +271,9 @@ class MultiboxCoder(object):
         mb_bbox[:, 2:] *= xp.exp(mb_loc[:, 2:] * self._variance[1])
 
         # (center_y, center_x, height, width) -> (y_min, x_min, height, width)
-        mb_bbox[:, :2] -= mb_bbox[:, 2:] / 2
+        # mb_bbox[:, :2] -= mb_bbox[:, 2:] / 2
         # (center_y, center_x, height, width) -> (y_min, x_min, y_max, x_max)
-        mb_bbox[:, 2:] += mb_bbox[:, :2]
+        # mb_bbox[:, 2:] += mb_bbox[:, :2]
         return mb_bbox
 
 

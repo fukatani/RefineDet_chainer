@@ -43,7 +43,7 @@ class RefineDetUpdater(training.StandardUpdater):
             bbox = cupy.asarray(bbox)
             label = cupy.asarray(label)
             mb_loc, mb_label = self.coder.encode(bbox, label)
-            decode_arm = self.coder.decode_simple(mb_loc)
+            decode_arm = self.coder.decode_simple(arm_loc)
             refined_loc, _ = self.coder.encode(bbox, label, decode_arm=decode_arm)
             # refined_loc, _ = self.coder.encode(bbox, label, decode_arm=self.coder._default_bbox)
             batch[i] = list(batch[i])
