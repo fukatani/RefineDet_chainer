@@ -67,10 +67,11 @@ class RefineDetTrainChain(chainer.Chain):
         arm_locs, _, _, _ = self.model(imgs)
         return arm_locs.array
 
-    def __call__(self, imgs, gt_mb_locs, gt_mb_labels, refined_locs):
+    def __call__(self, imgs, gt_mb_locs, gt_mb_labels, refined_locs,
+                 refined_labels):
         arm_locs, arm_confs, odm_locs, odm_confs = self.model(imgs)
 
-        gt_objectness_label = gt_mb_labels.copy()
+        gt_objectness_label = gt_mb_labels
         gt_objectness_label[gt_objectness_label > 0] = 1
 
         arm_loc_loss, arm_conf_loss = multibox_loss(
@@ -81,7 +82,7 @@ class RefineDetTrainChain(chainer.Chain):
         objectness = xp.zeros_like(arm_confs.array)
         objectness[arm_confs.array >= 0.01] = 1
         odm_loc_loss, odm_conf_loss = multibox_loss(
-            odm_locs, odm_confs, refined_locs, gt_mb_labels, self.k,
+            odm_locs, odm_confs, refined_locs, refined_labels, self.k,
             arm_confs=objectness)
         loss = arm_loc_loss + arm_conf_loss + odm_loc_loss + odm_conf_loss
 
