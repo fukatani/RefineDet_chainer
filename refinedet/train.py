@@ -74,7 +74,7 @@ class RefineDetTrainChain(chainer.Chain):
         gt_objectness_label[gt_objectness_label > 0] = 1
 
         arm_loc_loss, arm_conf_loss = multibox_loss(
-            arm_locs, arm_confs, gt_mb_locs.copy(), gt_objectness_label, self.k,
+            arm_locs, arm_confs, gt_mb_locs, gt_objectness_label, self.k,
             binarize=True)
 
         xp = cuda.get_array_module(arm_confs)
