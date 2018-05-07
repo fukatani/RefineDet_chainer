@@ -343,7 +343,7 @@ class RefineDetMultiboxCoder(MultiboxCoder):
 
             if nms_thresh is not None:
                 indices = utils.non_maximum_suppression(
-                    bbox_l, nms_thresh, score_l, limit=400)
+                    bbox_l, nms_thresh, score_l, limit=500)
                 bbox_l = bbox_l[indices]
                 score_l = score_l[indices]
 

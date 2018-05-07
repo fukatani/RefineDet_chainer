@@ -230,18 +230,12 @@ def main():
                                                  model.coder,
                                                  arm_locs_func=train_chain.arm_locs,
                                                  device=args.gpu)
-    if isinstance(model, RefineDet320):
-        trainer = training.Trainer(updater, (240000, 'iteration'), args.out)
-        trainer.extend(
-            extensions.ExponentialShift('lr', 0.1, init=1e-3),
-            trigger=triggers.ManualScheduleTrigger([160000, 200000],
-                                                   'iteration'))
-    else:
-        trainer = training.Trainer(updater, (120000, 'iteration'), args.out)
-        trainer.extend(
-            extensions.ExponentialShift('lr', 0.1, init=1e-3),
-            trigger=triggers.ManualScheduleTrigger([80000, 100000],
-                                                   'iteration'))
+
+    trainer = training.Trainer(updater, (120000, 'iteration'), args.out)
+    trainer.extend(
+        extensions.ExponentialShift('lr', 0.1, init=1e-3),
+        trigger=triggers.ManualScheduleTrigger([80000, 100000],
+                                               'iteration'))
 
     trainer.extend(
         DetectionVOCEvaluator(
