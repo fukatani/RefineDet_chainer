@@ -18,6 +18,7 @@ from chainercv.utils import download_model
 from refinedet.links.model.multibox import ExtendedMultibox
 from refinedet.links.model.multibox import ExtendedResidualMultibox
 from refinedet.links.model.multibox import MultiboxWithTCB
+from refinedet.links.model.multibox import CFEModule
 from refinedet.links.model.ssd import RefineDetSSD
 
 try:
@@ -491,3 +492,122 @@ class RefineDet320(RefineDetSSD):
 
         if path:
             _load_npz(path, self)
+
+
+class VGG16CFE(chainer.Chain):
+    """An extended VGG-16 model for SSD320.
+
+    This is an extended VGG-16 model proposed in [#]_.
+    The differences from original VGG-16 [#]_ are shown below.
+
+    * :obj:`conv5_1`, :obj:`conv5_2` and :obj:`conv5_3` are changed from \
+    :class:`~chainer.links.Convolution2d` to \
+    :class:`~chainer.links.DilatedConvolution2d`.
+    * :class:`~chainercv.links.model.ssd.Normalize` is \
+    inserted after :obj:`conv4_3`.
+    * The parameters of max pooling after :obj:`conv5_3` are changed.
+    * :obj:`fc6` and :obj:`fc7` are converted to :obj:`conv6` and :obj:`conv7`.
+
+    .. [#] Wei Liu, Dragomir Anguelov, Dumitru Erhan,
+       Christian Szegedy, Scott Reed, Cheng-Yang Fu, Alexander C. Berg.
+       SSD: Single Shot MultiBox Detector. ECCV 2016.
+    .. [#] Karen Simonyan, Andrew Zisserman.
+       Very Deep Convolutional Networks for Large-Scale Image Recognition.
+       ICLR 2015.
+    """
+
+    def __init__(self):
+        super(VGG16CFE, self).__init__()
+        with self.init_scope():
+            self.conv1_1 = L.Convolution2D(64, 3, pad=1)
+            self.conv1_2 = L.Convolution2D(64, 3, pad=1)
+
+            self.conv2_1 = L.Convolution2D(128, 3, pad=1)
+            self.conv2_2 = L.Convolution2D(128, 3, pad=1)
+
+            self.conv3_1 = L.Convolution2D(256, 3, pad=1)
+            self.conv3_2 = L.Convolution2D(256, 3, pad=1)
+            self.conv3_3 = L.Convolution2D(256, 3, pad=1)
+
+            self.conv4_1 = L.Convolution2D(512, 3, pad=1)
+            self.conv4_2 = L.Convolution2D(512, 3, pad=1)
+            self.conv4_3 = L.Convolution2D(512, 3, pad=1)
+
+
+    def __call__(self, x):
+        h = F.relu(self.conv1_1(x))
+        h = F.relu(self.conv1_2(h))
+        h = F.max_pooling_2d(h, 2)
+
+        h = F.relu(self.conv2_1(h))
+        h = F.relu(self.conv2_2(h))
+        h = F.max_pooling_2d(h, 2)
+
+        h = F.relu(self.conv3_1(h))
+        h = F.relu(self.conv3_2(h))
+        h = F.relu(self.conv3_3(h))
+        h = F.max_pooling_2d(h, 2)
+
+        h = F.relu(self.conv4_1(h))
+        h = F.relu(self.conv4_2(h))
+        h = F.relu(self.conv4_3(h))
+
+        return [h,]
+
+
+class VGG16CFEExtractor300(VGG16CFE):
+    """A VGG-16 based feature extractor for SSD300.
+
+    This is a feature extractor for :class:`~chainercv.links.model.ssd.SSD300`.
+    This extractor is based on :class:`~chainercv.links.model.ssd.VGG16`.
+    """
+
+    insize = 300
+    grids = (38, 19, 10, 5, 3, 1)
+
+    def __init__(self):
+        init = {
+            'initialW': initializers.LeCunUniform(),
+            'initial_bias': initializers.Zero(),
+        }
+        super(VGG16CFEExtractor300, self).__init__()
+        with self.init_scope():
+            self.cfe1 = CFEModule(7)
+            self.fc7 = L.Convolution2D(1024, 1)
+            self.cfe2 = CFEModule(7)
+            self.conv6_1 = L.Convolution2D(256, 1, **init)
+            self.conv6_2 = L.Convolution2D(512, 3, stride=2, pad=1, **init)
+            self.conv7_1 = L.Convolution2D(256, 1, **init)
+            self.conv7_2 = L.Convolution2D(512, 3, stride=2, pad=1, **init)
+            self.conv8_1 = L.Convolution2D(256, 1, **init)
+            self.conv8_2 = L.Convolution2D(512, 3, stride=2, pad=1, **init)
+            self.conv9_1 = L.Convolution2D(128, 1, **init)
+            self.conv9_2 = L.Convolution2D(256, 3, stride=2, pad=1, **init)
+
+
+    def __call__(self, x):
+        """Compute feature maps from a batch of images.
+
+        This method extracts feature maps from
+        :obj:`conv4_3`, :obj:`conv7`, :obj:`conv8_2`,
+        :obj:`conv9_2`, :obj:`conv10_2`, and :obj:`conv11_2`.
+
+        Args:
+            x (ndarray): An array holding a batch of images.
+                The images should be resized to :math:`300\\times 300`.
+
+        Returns:
+            list of Variable:
+            Each variable contains a feature map.
+        """
+
+        ys = super(VGG16CFEExtractor300, self).__call__(x)
+        h = self.fc7(self.cfe1(ys[-1]))
+        ys.append(h)
+        h = self.cfe2(h)
+
+        for i in range(6, 9 + 1):
+            h = F.relu(self['conv{:d}_1'.format(i)](h))
+            h = F.relu(self['conv{:d}_2'.format(i)](h))
+            ys.append(h)
+        return ys

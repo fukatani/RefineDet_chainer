@@ -643,3 +643,140 @@ class MultiboxWithTCB(chainer.Chain):
         odm_confs = F.concat(odm_confs, axis=1)
 
         return arm_locs, arm_confs, odm_locs, odm_confs
+
+
+class CFEModule(chainer.Chain):
+    # TODO conv bn relu
+
+    def __init__(self, k, initialW=None, initial_bias=None):
+        super(CFEModule, self).__init__()
+        with self.init_scope():
+            self.conv1_1 = L.Convolution2D(
+                512, 1, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+            self.bn1_1 = L.BatchNormalization(512)
+            self.conv1_2 = L.Convolution2D(
+                512, (k, 1), pad=1, initialW=initialW, initial_bias=initial_bias,
+                groups=8, nobias=True)
+            self.bn1_2 = L.BatchNormalization(512)
+            self.conv1_3 = L.Convolution2D(
+                512, (1, k), pad=1, initialW=initialW, initial_bias=initial_bias,
+                groups=8, nobias=True)
+            self.bn1_3 = L.BatchNormalization(512)
+            self.conv1_4 = L.Convolution2D(
+                512, 1, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+            self.bn1_4 = L.BatchNormalization(512)
+            self.conv2_1 = L.Convolution2D(
+                512, 1, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+            self.bn2_1 = L.BatchNormalization(512)
+            self.conv2_2 = L.Convolution2D(
+                512, (1, k), pad=1, initialW=initialW, initial_bias=initial_bias,
+                groups=8, nobias=True)
+            self.bn2_2 = L.BatchNormalization(512)
+            self.conv2_3 = L.Convolution2D(
+                512, (k, 1), pad=1, initialW=initialW, initial_bias=initial_bias,
+                groups=8, nobias=True)
+            self.bn2_3 = L.BatchNormalization(512)
+            self.conv2_4 = L.Convolution2D(
+                512, 1, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+            self.bn2_4 = L.BatchNormalization(512)
+            self.conv3 = L.Convolution2D(
+                1024, 1, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+            self.bn3 = L.BatchNormalization(1024)
+
+    def __call__(self, x, y):
+        h1 = F.relu(self.bn1_4(self.conv1_4(
+             F.relu(self.bn1_3(self.conv1_3(
+             F.relu(self.bn1_2(self.conv1_2(
+             F.relu(self.bn1_1(self.conv1_1(x))))))))))))
+        h2 = F.relu(self.bn2_4(self.conv2_4(
+             F.relu(self.bn2_3(self.conv2_3(
+             F.relu(self.bn2_2(self.conv2_2(
+             F.relu(self.bn2_1(self.conv2_1(x))))))))))))
+        h3 = F.concat((h1, h2))
+        h4 = F.relu(self.conv3(h3))
+        return h4 + x
+
+
+class FFB(chainer.Chain):
+
+    def __init__(self, initialW=None, initial_bias=None):
+        super(FFB, self).__init__()
+        with self.init_scope():
+            self.conv1 = L.Convolution2D(
+                256, 3, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+            self.conv2 = L.Convolution2D(
+                256, 3, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+            self.deconv = L.Deconvolution2D(
+                256, 4, stride=2, pad=1, initialW=initialW, initial_bias=initial_bias,
+                nobias=True)
+
+    def __call__(self, x, y):
+        h1 = F.relu(self.conv1(x))
+        h2 = self.conv2(h1)
+        d1 = self.deconv(y)
+        h3 = F.relu(h2 + d1)
+        return h3
+
+
+class MultiboxCFE(chainer.Chain):
+
+    def __init__(
+            self, n_class, aspect_ratios,
+            initialW=None, initial_bias=None):
+        self.n_class = n_class
+        self.aspect_ratios = aspect_ratios
+
+        super(MultiboxCFE, self).__init__()
+        with self.init_scope():
+            self.res = chainer.ChainList()
+            self.loc = chainer.ChainList()
+            self.conf = chainer.ChainList()
+            self.ffb1 = FFB()
+            self.ffb2 = FFB()
+            self.cfe1 = CFEModule(7)
+            self.cfe2 = CFEModule(7)
+
+        if initialW is None:
+            initialW = initializers.LeCunUniform()
+        if initial_bias is None:
+            initial_bias = initializers.Zero()
+        init = {'initialW': initialW, 'initial_bias': initial_bias}
+
+        for ar in aspect_ratios:
+            n = (len(ar) + 1) * 2
+            self.res.add_link(Residual(**init))
+            self.loc.add_link(L.Convolution2D(n * 4, 3, pad=1, **init))
+            self.conf.add_link(L.Convolution2D(
+                n * self.n_class, 3, pad=1, **init))
+
+    def __call__(self, xs):
+        assert len(xs) == 6
+
+        mb_locs = list()
+        mb_confs = list()
+        xs[0] = self.cfe1(self.ffb1(xs[0], xs[1]))
+        xs[1] = self.cfe2(self.ffb2(xs[1], xs[2]))
+        for i, x in enumerate(xs):
+            x = self.res[i](x)
+            mb_loc = self.loc[i](x)
+            mb_loc = F.transpose(mb_loc, (0, 2, 3, 1))
+            mb_loc = F.reshape(mb_loc, (mb_loc.shape[0], -1, 4))
+            mb_locs.append(mb_loc)
+
+            mb_conf = self.conf[i](x)
+            mb_conf = F.transpose(mb_conf, (0, 2, 3, 1))
+            mb_conf = F.reshape(
+                mb_conf, (mb_conf.shape[0], -1, self.n_class))
+            mb_confs.append(mb_conf)
+
+        mb_locs = F.concat(mb_locs, axis=1)
+        mb_confs = F.concat(mb_confs, axis=1)
+
+        return mb_locs, mb_confs
