@@ -17,7 +17,6 @@ from chainercv.datasets import VOCBboxDataset
 from chainercv.extensions import DetectionVOCEvaluator
 from chainercv.links.model.ssd import GradientScaling
 from chainercv.links import SSD300
-from chainercv.links import SSD300Plus
 from chainercv.links import SSD512
 from chainercv import transforms
 
@@ -26,6 +25,7 @@ from chainercv.links.model.ssd import random_distort
 from chainercv.links.model.ssd import resize_with_random_interpolation
 
 from refinedet.links.model.multibox_loss import multibox_loss
+from refinedet.links.model.ssd_vgg16 import SSD300Plus
 from refinedet.links.model.ssd_vgg16 import DSSD300
 from refinedet.links.model.ssd_vgg16 import ESSD300
 from refinedet.links.model.ssd_vgg16 import ESSD300Plus
